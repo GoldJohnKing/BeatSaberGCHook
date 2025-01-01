@@ -1,12 +1,4 @@
 ﻿using IPA;
-using IPA.Config;
-using IPA.Config.Stores;
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.Scripting;
 using IPALogger = IPA.Logging.Logger;
 
@@ -15,7 +7,6 @@ namespace GCHook
     [Plugin(RuntimeOptions.SingleStartInit)]
     public class Plugin
     {
-        private bool isInGameCore = false;
         internal static Plugin Instance { get; private set; }
         internal static IPALogger Log { get; private set; }
 
@@ -29,67 +20,25 @@ namespace GCHook
         {
             Instance = this;
             Log = logger;
-            Log.Info("GCHook initialized.");
+            Log.Info("Plugin initialized.");
         }
-
-        #region BSIPA Config
-        //Uncomment to use BSIPA's config
-        /*
-        [Init]
-        public void InitWithConfig(Config conf)
-        {
-            Configuration.PluginConfig.Instance = conf.Generated<Configuration.PluginConfig>();
-            Log.Debug("Config loaded");
-        }
-        */
-        #endregion
 
         [OnStart]
         public void OnApplicationStart()
         {
-            //Log.Debug("OnApplicationStart");
-            //new GameObject("GCHookController").AddComponent<GCHookController>();
+            GarbageCollector.GCMode = GarbageCollector.Mode.Disabled;
+            Log.Info("OnApplicationStart: GC is disabled.");
 
-            GarbageCollector.GCModeChanged += GCModeChanged;
-            SceneManager.activeSceneChanged += OnActiveSceneChanged;
-
-            Log.Info("GCHook Plugin Injected.");
+            GarbageCollector.GCModeChanged += OnGCModeChanged;
+            Log.Info("OnApplicationStart: GCModeChanged callback Injected.");
         }
 
-        [OnExit]
-        public void OnApplicationQuit()
+        public void OnGCModeChanged(GarbageCollector.Mode mode)
         {
-            //Log.Debug("OnApplicationQuit");
-        }
-
-        public void OnActiveSceneChanged(Scene prevScene, Scene nextScene)
-        {
-            //if (nextScene.name == "MenuViewControllers")
-            //{
-            //    isInGameCore = false;
-            //    GarbageCollector.GCMode = GarbageCollector.Mode.Enabled;
-
-            //    Log.Info("Changing from GameCore to MenuViewControllers, Enabled GC.");
-            //}
-            if (nextScene.name == "GameCore") // GC will be automatically enabled when exit GameCore
-            {
-                isInGameCore = true;
-                GarbageCollector.GCMode = GarbageCollector.Mode.Disabled;
-
-                Log.Info("Game Start, Disable GC.");
-            }
-        }
-
-        public void GCModeChanged(GarbageCollector.Mode mode)
-        {
-            if (/*isInGameCore && */mode != GarbageCollector.Mode.Disabled)
+            if (GarbageCollector.GCMode != GarbageCollector.Mode.Disabled)
             {
                 GarbageCollector.GCMode = GarbageCollector.Mode.Disabled;
-                Log.Info("External source has enabled GC during GameCore, Disable GC.");
-            }
-            else
-            {
-                Log.Info("External source has disabled GC during GameCore");
+                Log.Info("OnGCModeChanged: GC is enabled, forcefully disable it.");
             }
         }
     }
